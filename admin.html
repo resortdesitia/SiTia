@@ -27,7 +27,7 @@
         .refresh-btn { background-color: #007bff; }
         .add-btn { background-color: var(--success-color); }
         .loader:before { content: 'กำลังโหลดข้อมูล...'; }
-        .loader, #statusMessage { text-align: center; padding: 2rem; font-size: 1.2rem; display: none; }
+        .loader { text-align: center; padding: 2rem; font-size: 1.2rem; display: none; }
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         th, td { padding: 12px 15px; border: 1px solid var(--border-color); text-align: left; white-space: nowrap; }
@@ -105,7 +105,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const ADMIN_PASSWORD = "1234";
+            const ADMIN_PASSWORD = "1234"; 
 
             const mainContent = document.getElementById('mainContent');
             const authMessage = document.getElementById('authMessage');
@@ -413,7 +413,8 @@
                 const initialLoad = async () => {
                     await Promise.all([
                         fetchBookings(),
-                        fetchRooms()
+                        fetchRooms(),
+                        fetchReceiptInfo()
                     ]);
                     fetchDashboardStats();
                 };
