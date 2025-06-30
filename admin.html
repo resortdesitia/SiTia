@@ -27,7 +27,7 @@
         .refresh-btn { background-color: #007bff; }
         .add-btn { background-color: var(--success-color); }
         .loader:before { content: 'กำลังโหลดข้อมูล...'; }
-        .loader { text-align: center; padding: 2rem; font-size: 1.2rem; display: none; }
+        .loader, #statusMessage { text-align: center; padding: 2rem; font-size: 1.2rem; display: none; }
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         th, td { padding: 12px 15px; border: 1px solid var(--border-color); text-align: left; white-space: nowrap; }
@@ -102,7 +102,7 @@
     <div id="roomModal" class="modal"><div class="modal-content"><span class="close-btn room-modal-close">&times;</span><h2 id="roomModalTitle"></h2><form id="roomForm"><div class="form-group"><label for="roomIdInput">ID ห้อง (ห้ามซ้ำ)</label><input type="text" id="roomIdInput" required></div><div class="form-group"><label for="roomBuildingInput">อาคาร</label><input type="text" id="roomBuildingInput" required></div><div class="form-group"><label for="roomTypeInput">ประเภท</label><input type="text" id="roomTypeInput" required></div><div class="form-group"><label for="roomPriceInput">ราคา/คืน</label><input type="number" id="roomPriceInput" required></div><div class="form-group"><label for="roomImageUrlInput">URL รูปภาพ</label><input type="text" id="roomImageUrlInput"></div><div class="form-group"><label for="roomDescriptionInput">คำอธิบาย</label><textarea id="roomDescriptionInput" rows="3"></textarea></div><div class="form-actions"><button type="button" class="cancel-btn room-modal-close">ยกเลิก</button><button type="submit" class="save-btn">บันทึก</button></div></form></div></div>
     <div id="bookingEditModal" class="modal"><div class="modal-content"><span class="close-btn booking-modal-close">&times;</span><h2>แก้ไขรายการจอง</h2><form id="editForm"><input type="hidden" id="editBookingId"><div class="form-group"><label for="editRoomId">รหัสห้อง</label><input type="text" id="editRoomId" required></div><div class="form-group"><label for="editCustomerName">ชื่อผู้จอง</label><input type="text" id="editCustomerName" required></div><div class="form-group"><label for="editCustomerAddress">ที่อยู่</label><textarea id="editCustomerAddress" rows="3" required></textarea></div><div class="form-group"><label for="editCheckInDate">วันที่เช็คอิน</label><input type="date" id="editCheckInDate" required></div><div class="form-group"><label for="editCheckOutDate">วันที่เช็คเอาท์</label><input type="date" id="editCheckOutDate" required></div><div class="form-actions"><button type="button" class="cancel-btn booking-modal-close">ยกเลิก</button><button type="submit" class="save-btn">บันทึกการเปลี่ยนแปลง</button></div></form></div></div>
     <div id="receipt-template" style="display: none;"><div class="receipt-container"><div class="receipt-header"><h2 id="receipt-header-name"></h2><p id="receipt-header-address"></p><p id="receipt-header-phone"></p></div><hr><h3>ใบเสร็จรับเงิน / ใบแจ้งหนี้</h3><div class="receipt-body"><div class="customer-info"><strong>ข้อมูลลูกค้า:</strong><p>ชื่อ: <span id="receipt-customerName"></span></p><p>ที่อยู่: <span id="receipt-customerAddress"></span></p></div><div class="booking-info"><strong>ข้อมูลการจอง:</strong><p>รหัสการจอง: <span id="receipt-bookingId"></span></p><p>วันที่ออกใบเสร็จ: <span id="receipt-issueDate"></span></p></div><table><thead><tr><th>รายการ</th><th>จำนวนคืน</th><th>ราคา/คืน</th><th>รวมเป็นเงิน</th></tr></thead><tbody><tr><td>ค่าห้องพัก (<span id="receipt-roomId"></span>)</td><td id="receipt-nights"></td><td id="receipt-pricePerNight"></td><td id="receipt-subTotal"></td></tr></tbody><tfoot><tr><td colspan="3" class="total-label">ยอดรวมสุทธิ (บาท)</td><td class="total-amount"><span id="receipt-totalAmount"></span></td></tr></tfoot></table></div><div class="receipt-footer"><p>ขอบคุณที่ใช้บริการครับ</p></div></div></div>
-    
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const ADMIN_PASSWORD = "1234";
@@ -144,7 +144,7 @@
                 let allRooms = [];
                 let receiptInfo = {};
 
-                // DOM Elements
+                // --- DOM Elements ---
                 const tabLinks = document.querySelectorAll('.tab-link');
                 const tabContents = document.querySelectorAll('.tab-content');
                 const bookingsTbody = document.getElementById('bookingsTbody');
@@ -164,7 +164,7 @@
                 const receiptForm = document.getElementById('receiptForm');
                 let isEditingRoom = false;
 
-                // Tab Switching Logic
+                // --- Tab Switching Logic ---
                 tabLinks.forEach(tab => {
                      tab.addEventListener('click', (e) => {
                         const targetTabId = e.target.dataset.tab;
@@ -176,7 +176,7 @@
                     });
                 });
 
-                // API Caller
+                // --- API Caller ---
                 const callApi = async (action, method = 'GET', body = null) => {
                     const url = method === 'GET' ? `${API_URL}?action=${action}` : API_URL;
                     const options = { method, redirect: 'follow', headers: {} };
@@ -191,7 +191,7 @@
                     return result.data;
                 };
                 
-                // Helper Functions
+                // --- Helper Functions ---
                 const formatDate = (d, includeTime = false) => {
                     if (!d) return '';
                     const date = new Date(d);
@@ -206,13 +206,17 @@
                     return `${day}/${month}/${year}`;
                 };
                 const formatDateForInput = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
-                const showLoader = (loader) => { loader.style.display = 'block'; };
-                const hideLoader = (loader) => { loader.style.display = 'none'; };
+                const showLoader = (loader, table) => {
+                    loader.style.display = 'block';
+                    if(table) table.style.display = 'none';
+                };
+                const hideLoader = (loader) => {
+                    loader.style.display = 'none';
+                };
 
-                // Booking Management
+                // --- Booking Management ---
                 const fetchBookings = async () => {
-                    showLoader(bookingsLoader);
-                    bookingsTable.style.display = 'none';
+                    showLoader(bookingsLoader, bookingsTable);
                     try {
                         allBookings = await callApi('getBookings');
                         renderBookingsTable(allBookings);
@@ -228,10 +232,9 @@
                     bookingsTable.style.display = 'table';
                 };
                 
-                // Room Management
+                // --- Room Management ---
                 const fetchRooms = async () => {
-                    showLoader(roomsLoader);
-                    roomsTable.style.display = 'none';
+                    showLoader(roomsLoader, roomsTable);
                     try {
                         allRooms = await callApi('getRooms');
                         renderRoomsTable(allRooms);
@@ -247,7 +250,7 @@
                     roomsTable.style.display = 'table';
                 };
 
-                // Receipt Info Management
+                // --- Receipt Info Management ---
                 const fetchReceiptInfo = async () => {
                     try {
                         receiptInfo = await callApi('getReceiptInfo');
@@ -257,7 +260,7 @@
                     } catch (error) { Swal.fire('เกิดข้อผิดพลาด', `ไม่สามารถดึงข้อมูลใบเสร็จได้: ${error.message}`, 'error'); }
                 };
                 
-                // Dashboard Management
+                // --- Dashboard Management ---
                 const fetchDashboardStats = async () => {
                     try {
                         const stats = await callApi('getDashboardStats');
@@ -268,7 +271,7 @@
                     } catch (error) { console.error("Fetch Dashboard Stats Error:", error); }
                 };
                 
-                // Shared Delete Logic
+                // --- Shared Delete Logic ---
                 const handleDeleteClick = async (id, action, type, fetchFn) => {
                     const { isConfirmed } = await Swal.fire({ title: 'ยืนยันการลบ', text: `คุณต้องการลบ${type}รหัส ${id} ใช่หรือไม่?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก' });
                     if (isConfirmed) {
@@ -282,7 +285,7 @@
                     }
                 };
 
-                // Print Receipt Logic
+                // --- Print Receipt Logic ---
                 const handlePrintClick = async (bookingId) => {
                     if (Object.keys(receiptInfo).length === 0) await fetchReceiptInfo();
                     if (allRooms.length === 0) await fetchRooms();
