@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจองห้องพัก</title>
-    <!-- Add SweetAlert2 and Showdown JS from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
         :root { --primary-color: #007bff; --secondary-color: #f8f9fa; --text-color: #333; --light-text-color: #f1f1f1; --success-color: #28a745; --danger-color: #dc3545; --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--secondary-color); color: var(--text-color); line-height: 1.6; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--secondary-color); color: var(--text-color); line-height: 1.6; }
         .container { width: 90%; max-width: 1200px; margin: 0 auto; padding: 20px 0; }
         header { background-color: var(--primary-color); color: var(--light-text-color); padding: 1.5rem 0; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-bottom: 2rem; }
         #roomsGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
@@ -21,13 +21,12 @@
         .room-card p { margin-bottom: 1rem; flex-grow: 1; font-size: 0.9rem; }
         .room-card .price { font-size: 1.3rem; font-weight: bold; color: var(--primary-color); }
         .room-card .book-btn { background-color: var(--primary-color); color: #fff; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; margin-top: auto; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 1rem; }
-        .modal.is-active { display: flex; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal.is-active { display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .modal-content { background-color: #fefefe; padding: 2rem; border-radius: 10px; width: 100%; max-width: 500px; position: relative; animation: fadeIn 0.5s; max-height: 90vh; overflow-y: auto; }
         .close-btn { color: #aaa; position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .modal h2 { margin-bottom: 1.5rem; text-align: center; }
         .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; }
-        .form-group input, .form-group textarea { width: 100%; padding: 0.8rem; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
         .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
         .form-actions button { flex: 1; padding: 0.8rem; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; font-weight: bold; }
         .submit-btn { background-color: var(--success-color); color: white; }
@@ -72,7 +71,7 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const API_URL = "https://script.google.com/macros/s/AKfycbwS--s4p0Czj9Qzu6ZUWJGaW-OMH-5x7rmhGPOkN0VVy5_JUDBxM2Mx2dIOiZcTj-c_/exec"; 
+            const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL"; 
             const roomsGrid = document.getElementById('roomsGrid');
             const loader = document.getElementById('loader');
             const statusMessage = document.getElementById('statusMessage');
@@ -85,7 +84,7 @@
             const checkOutInput = document.getElementById('checkOutDate');
             const availabilityStatus = document.getElementById('availabilityStatus');
             const priceCalculation = document.getElementById('priceCalculation');
-            const submitBtn = document.querySelector('.submit-btn');
+            const submitBtn = modal.querySelector('.submit-btn');
             const closeBtn = modal.querySelector('.close-btn');
             const cancelBtn = modal.querySelector('.cancel-btn');
 
@@ -213,6 +212,7 @@
                     submitBtn.textContent = 'ยืนยันการจอง';
                 }
             });
+
             fetchRooms();
         });
     </script>
