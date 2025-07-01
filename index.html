@@ -1,224 +1,151 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจองห้องพัก</title>
-    <!-- Library for modern alerts -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        /* All CSS styles are included here */
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
-        :root { --primary-color: #007bff; --secondary-color: #f8f9fa; --text-color: #333; --light-text-color: #f1f1f1; --success-color: #28a745; --danger-color: #dc3545; --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Sarabun', sans-serif; background-color: var(--secondary-color); color: var(--text-color); line-height: 1.6; }
-        .container { width: 90%; max-width: 1200px; margin: 0 auto; padding: 20px 0; }
-        header { background-color: var(--primary-color); color: var(--light-text-color); padding: 1.5rem 0; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-bottom: 2rem; }
-        #roomsGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
-        .room-card { background: #fff; border-radius: 10px; box-shadow: var(--card-shadow); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.3s ease; }
-        .room-card:hover { transform: translateY(-5px); }
-        .room-card img { width: 100%; height: 200px; object-fit: cover; background-color: #eee; }
-        .room-card-content { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
-        .room-card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
-        .room-card p { margin-bottom: 1rem; flex-grow: 1; font-size: 0.9rem; }
-        .room-card .price { font-size: 1.3rem; font-weight: bold; color: var(--primary-color); }
-        .room-card .book-btn { background-color: var(--primary-color); color: #fff; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; margin-top: auto; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-        .modal.is-active { display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .modal-content { background-color: #fefefe; padding: 2rem; border-radius: 10px; width: 100%; max-width: 500px; position: relative; animation: fadeIn 0.5s; max-height: 90vh; overflow-y: auto; }
-        .close-btn { color: #aaa; position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .modal h2 { margin-bottom: 1.5rem; text-align: center; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600;}
-        .form-group input, .form-group textarea { width: 100%; padding: 0.8rem; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; font-family: 'Sarabun', sans-serif; }
-        .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
-        .form-actions button { flex: 1; padding: 0.8rem; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; font-weight: bold; }
-        .submit-btn { background-color: var(--success-color); color: white; }
-        .cancel-btn { background-color: var(--danger-color); color: white; }
-        .submit-btn.is-disabled { background-color: #9c9c9c; cursor: not-allowed; opacity: 0.65; }
-        #loader:before { content: 'กำลังโหลดข้อมูลห้องพัก...'; }
-        #loader, #statusMessage { text-align: center; padding: 2rem; font-size: 1.2rem; }
-        .status-box { margin-top: 1rem; padding: 1rem; background-color: #f0f2f5; border-radius: 8px; text-align: center; }
-        #availabilityStatus { font-weight: bold; min-height: 24px; }
-        #priceCalculation { font-size: 1.2rem; font-weight: bold; color: var(--primary-color); margin-top: 0.5rem; }
-        @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
-    </style>
+  <title>ระบบจองห้องพัก</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .room-card { transition: transform 0.3s; margin-bottom: 20px; }
+    .room-card:hover { transform: scale(1.03); }
+    .book-btn { width: 100%; }
+    .status-available { color: green; }
+    .status-booked { color: red; }
+  </style>
 </head>
 <body>
-    <header><h1>ระบบจองห้องพัก</h1></header>
-    <main class="container">
-        <div id="loader"></div>
-        <div id="statusMessage" style="display: none;"></div>
-        <div id="roomsGrid"></div>
-    </main>
-    <div id="bookingModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2 id="modalTitle">จองห้องพัก</h2>
-            <form id="bookingForm">
-                <input type="hidden" id="roomId">
-                <input type="hidden" id="roomPrice">
-                <div class="form-group"><label for="customerName">ชื่อผู้จอง</label><input type="text" id="customerName" required></div>
-                <div class="form-group"><label for="customerAddress">ที่อยู่ (สำหรับออกใบเสร็จ)</label><textarea id="customerAddress" rows="3" required></textarea></div>
-                <div class="form-group"><label for="checkInDate">วันที่เช็คอิน</label><input type="date" id="checkInDate" required></div>
-                <div class="form-group"><label for="checkOutDate">วันที่เช็คเอาท์</label><input type="date" id="checkOutDate" required></div>
-                <div class="status-box">
-                    <div id="availabilityStatus">กรุณาเลือกวันที่</div>
-                    <div id="priceCalculation">ราคารวม: ฿ 0</div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="cancel-btn">ยกเลิก</button>
-                    <button type="submit" class="submit-btn is-disabled" disabled>ยืนยันการจอง</button>
-                </div>
-            </form>
-        </div>
+  <div class="container mt-4">
+    <h1 class="text-center mb-4">ระบบจองห้องพัก</h1>
+    
+    <div class="row" id="roomsContainer">
+      <!-- การ์ดห้องพักจะแสดงที่นี่ -->
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const API_URL = "https://script.google.com/macros/s/AKfycbxYp7HqVwXxMkxamWJKQmEQAMY__8yVMimbqsMxjPtFJQ2lBbGnu0Dfh2sXKpZlX1ON/exec"; 
-            const roomsGrid = document.getElementById('roomsGrid');
-            const loader = document.getElementById('loader');
-            const statusMessage = document.getElementById('statusMessage');
-            const modal = document.getElementById('bookingModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const bookingForm = document.getElementById('bookingForm');
-            const roomIdInput = document.getElementById('roomId');
-            const roomPriceInput = document.getElementById('roomPrice');
-            const checkInInput = document.getElementById('checkInDate');
-            const checkOutInput = document.getElementById('checkOutDate');
-            const availabilityStatus = document.getElementById('availabilityStatus');
-            const priceCalculation = document.getElementById('priceCalculation');
-            const submitBtn = modal.querySelector('.submit-btn');
-            const closeBtn = modal.querySelector('.close-btn');
-            const cancelBtn = modal.querySelector('.cancel-btn');
+    
+    <!-- Modal สำหรับการจอง -->
+    <div class="modal fade" id="bookingModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">จองห้องพัก</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="bookingForm">
+              <input type="hidden" id="roomId">
+              <div class="mb-3">
+                <label class="form-label">ชื่อห้อง</label>
+                <input type="text" class="form-control" id="roomName" readonly>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">ชื่อผู้จอง</label>
+                <input type="text" class="form-control" id="customerName" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">วันที่เข้าพัก</label>
+                <input type="date" class="form-control" id="checkIn" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">วันที่ออก</label>
+                <input type="date" class="form-control" id="checkOut" required>
+              </div>
+              <button type="submit" class="btn btn-primary">ยืนยันการจอง</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            const fetchRooms = async () => {
-                loader.style.display = 'block';
-                if (!API_URL || API_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
-                    loader.style.display = 'none';
-                    statusMessage.textContent = "ข้อผิดพลาด: กรุณาใส่ Web App URL ของคุณในโค้ด JavaScript";
-                    statusMessage.style.display = 'block';
-                    return;
-                }
-                try {
-                    const response = await fetch(API_URL);
-                    const result = await response.json();
-                    if (result.status === 'success') renderRooms(result.data);
-                    else throw new Error(result.message);
-                } catch (error) {
-                    statusMessage.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
-                    statusMessage.style.display = 'block';
-                } finally {
-                    loader.style.display = 'none';
-                }
-            };
-
-            const renderRooms = (rooms) => {
-                roomsGrid.innerHTML = '';
-                rooms.forEach(room => {
-                    const card = document.createElement('div');
-                    card.className = 'room-card';
-                    const roomDisplayName = `${room.id} (${room.type})`;
-                    card.innerHTML = `<img src="${room.imageUrl}" alt="${roomDisplayName}" onerror="this.onerror=null;this.src='https://placehold.co/400x250/f0f2f5/333333?text=${room.id}';"><div class="room-card-content"><h3>${roomDisplayName}</h3><p>${room.description || 'ไม่มีคำอธิบาย'}</p><p class="price">฿${Number(room.pricePerNight).toLocaleString()} / คืน</p><button class="book-btn" data-room-id="${room.id}" data-room-name="${roomDisplayName}" data-room-price="${room.pricePerNight}">จองห้องนี้</button></div>`;
-                    roomsGrid.appendChild(card);
-                });
-            };
-
-            const openModal = (roomId, roomName, roomPrice) => {
-                modalTitle.textContent = `จองห้อง: ${roomName}`;
-                roomIdInput.value = roomId;
-                roomPriceInput.value = roomPrice;
-                bookingForm.reset();
-                availabilityStatus.textContent = 'กรุณาเลือกวันที่';
-                priceCalculation.textContent = 'ราคารวม: ฿ 0';
-                submitBtn.disabled = true;
-                submitBtn.classList.add('is-disabled');
-                const today = new Date().toISOString().split('T')[0];
-                checkInInput.min = today;
-                checkOutInput.min = today;
-                modal.classList.add('is-active');
-            };
-
-            let availabilityTimeout;
-            const updateBookingStatus = () => {
-                clearTimeout(availabilityTimeout);
-                submitBtn.disabled = true;
-                submitBtn.classList.add('is-disabled');
-                priceCalculation.textContent = 'ราคารวม: ฿ 0';
-                const checkIn = checkInInput.value;
-                const checkOut = checkOutInput.value;
-                if (!checkIn || !checkOut) {
-                    availabilityStatus.textContent = 'กรุณาเลือกวันที่';
-                    return;
-                }
-                const dateIn = new Date(checkIn);
-                const dateOut = new Date(checkOut);
-                if (dateOut <= dateIn) {
-                    availabilityStatus.textContent = "วันที่เช็คเอาท์ต้องหลังวันที่เช็คอิน";
-                    availabilityStatus.style.color = 'var(--danger-color)';
-                    return;
-                }
-                const nights = Math.ceil((dateOut - dateIn) / (1000 * 3600 * 24));
-                const pricePerNight = parseFloat(roomPriceInput.value);
-                if (isNaN(pricePerNight)) return;
-                priceCalculation.textContent = `ราคารวม: ฿ ${(nights * pricePerNight).toLocaleString()} (${nights} คืน)`;
-                availabilityStatus.textContent = "กำลังตรวจสอบห้องว่าง...";
-                availabilityStatus.style.color = 'var(--text-color)';
-                availabilityTimeout = setTimeout(async () => {
-                    const url = `${API_URL}?action=checkAvailability&roomId=${roomIdInput.value}&checkIn=${checkIn}&checkOut=${checkOut}`;
-                    try {
-                        const response = await fetch(url);
-                        const result = await response.json();
-                        if (result.status === 'success') {
-                            if (result.isAvailable) {
-                                availabilityStatus.textContent = "✅ ห้องนี้ว่าง";
-                                availabilityStatus.style.color = 'var(--success-color)';
-                                submitBtn.disabled = false;
-                                submitBtn.classList.remove('is-disabled');
-                            } else {
-                                availabilityStatus.textContent = "❌ ห้องนี้ไม่ว่างในช่วงวันที่เลือก";
-                                availabilityStatus.style.color = 'var(--danger-color)';
-                            }
-                        } else { throw new Error(result.message); }
-                    } catch (error) {
-                        availabilityStatus.textContent = "เกิดข้อผิดพลาดในการตรวจสอบ";
-                    }
-                }, 500);
-            };
-            
-            checkInInput.addEventListener('input', updateBookingStatus);
-            checkOutInput.addEventListener('input', updateBookingStatus);
-            roomsGrid.addEventListener('click', e => { if (e.target.classList.contains('book-btn')) openModal(e.target.dataset.roomId, e.target.dataset.roomName, e.target.dataset.roomPrice); });
-            closeBtn.addEventListener('click', () => modal.classList.remove('is-active'));
-            cancelBtn.addEventListener('click', () => modal.classList.remove('is-active'));
-            bookingForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'กำลังจอง...';
-                const bookingDetails = {
-                    roomId: roomIdInput.value,
-                    customerName: document.getElementById('customerName').value,
-                    customerAddress: document.getElementById('customerAddress').value,
-                    checkInDate: checkInInput.value,
-                    checkOutDate: checkOutInput.value,
-                };
-                try {
-                    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addBooking', data: bookingDetails }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        modal.classList.remove('is-active');
-                        Swal.fire({ title: 'จองสำเร็จ!', text: `รหัสการจองของคุณคือ: ${result.data.bookingId}`, icon: 'success', confirmButtonText: 'ตกลง' });
-                    } else { throw new Error(result.message); }
-                } catch (error) {
-                    Swal.fire({ title: 'เกิดข้อผิดพลาด', text: `จองไม่สำเร็จ: ${error.message}`, icon: 'error' });
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'ยืนยันการจอง';
-                }
-            });
-
-            fetchRooms();
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyRagha8huoVqVsYYEtP8qgYtKSr_Qtwjl7EpLTrTytwy1JL8Kns4t4CRk8vhhEr5Imkg/exec';
+    let rooms = [];
+    
+    // โหลดข้อมูลห้องพัก
+    async function loadRooms() {
+      try {
+        const response = await fetch(`${API_URL}?path=rooms/list`);
+        const data = await response.json();
+        rooms = data.rooms;
+        displayRooms();
+      } catch (error) {
+        console.error('Error loading rooms:', error);
+        alert('ไม่สามารถโหลดข้อมูลห้องพักได้');
+      }
+    }
+    
+    // แสดงห้องพักเป็นการ์ด
+    function displayRooms() {
+      const container = document.getElementById('roomsContainer');
+      container.innerHTML = '';
+      
+      rooms.forEach(room => {
+        const card = document.createElement('div');
+        card.className = 'col-md-4';
+        card.innerHTML = `
+          <div class="card room-card">
+            <img src="${room.image_url || 'https://via.placeholder.com/300'}" class="card-img-top" alt="${room.name}">
+            <div class="card-body">
+              <h5 class="card-title">${room.name}</h5>
+              <p class="card-text">${room.description || 'ไม่มีคำอธิบาย'}</p>
+              <p class="card-text">ราคา: ${room.price} บาท/คืน</p>
+              <p class="card-text ${room.status === 'ว่าง' ? 'status-available' : 'status-booked'}">
+                สถานะ: ${room.status}
+              </p>
+              <button class="btn btn-primary book-btn" 
+                onclick="openBookingModal('${room.id}', '${room.name}')" 
+                ${room.status !== 'ว่าง' ? 'disabled' : ''}>
+                จองห้อง
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+    
+    // เปิด Modal การจอง
+    function openBookingModal(roomId, roomName) {
+      document.getElementById('roomId').value = roomId;
+      document.getElementById('roomName').value = roomName;
+      const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+      modal.show();
+    }
+    
+    // ส่งแบบฟอร์มการจอง
+    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const bookingData = {
+        room_id: document.getElementById('roomId').value,
+        customer_name: document.getElementById('customerName').value,
+        check_in: document.getElementById('checkIn').value,
+        check_out: document.getElementById('checkOut').value
+      };
+      
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: 'bookings/create',
+            parameters: bookingData
+          })
         });
-    </script>
+        
+        const result = await response.json();
+        if (result.success) {
+          alert('จองห้องสำเร็จแล้ว');
+          document.getElementById('bookingForm').reset();
+          bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
+          loadRooms(); // โหลดข้อมูลใหม่เพื่ออัปเดตสถานะ
+        }
+      } catch (error) {
+        console.error('Error booking room:', error);
+        alert('เกิดข้อผิดพลาดในการจองห้อง');
+      }
+    });
+    
+    // โหลดข้อมูลเมื่อหน้าเว็บโหลดเสร็จ
+    window.onload = loadRooms;
+  </script>
 </body>
 </html>
