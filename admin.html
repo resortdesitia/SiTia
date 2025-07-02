@@ -8,80 +8,293 @@
     .total-rooms { background: #3498db; }
     .available-rooms { background: #2ecc71; }
     .booked-rooms { background: #e74c3c; }
+    .loading-spinner { display: none; }
+    .loading .loading-spinner { display: block; }
+    .loading .content { display: none; }
   </style>
 </head>
 <body>
   <div class="container mt-4">
     <h1 class="text-center mb-4">ระบบจัดการห้องพัก (Admin)</h1>
     
-    <div class="row">
-      <div class="col-md-4">
-        <div class="summary-card total-rooms">
-          <h3>ห้องทั้งหมด</h3>
-          <h2 id="totalRooms">0</h2>
-        </div>
+    <div class="loading-spinner text-center my-5">
+      <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">Loading...</span>
       </div>
-      <div class="col-md-4">
-        <div class="summary-card available-rooms">
-          <h3>ห้องว่าง</h3>
-          <h2 id="availableRooms">0</h2>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="summary-card booked-rooms">
-          <h3>ห้องถูกจอง</h3>
-          <h2 id="bookedRooms">0</h2>
-        </div>
-      </div>
+      <p class="mt-3">กำลังโหลดข้อมูล...</p>
     </div>
     
-    <h2 class="mt-4">การจองล่าสุด</h2>
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>ห้อง</th>
-          <th>ผู้จอง</th>
-          <th>วันที่เข้าพัก</th>
-          <th>วันที่ออก</th>
-        </tr>
-      </thead>
-      <tbody id="recentBookings">
-        <!-- ข้อมูลการจองล่าสุดจะแสดงที่นี่ -->
-      </tbody>
-    </table>
+    <div class="content">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="summary-card total-rooms">
+            <h3>ห้องทั้งหมด</h3>
+            <h2 id="totalRooms">0</h2>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="summary-card available-rooms">
+            <h3>ห้องว่าง</h3>
+            <h2 id="availableRooms">0</h2>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="summary-card booked-rooms">
+            <h3>ห้องถูกจอง</h3>
+            <h2 id="bookedRooms">0</h2>
+          </div>
+        </div>
+      </div>
+      
+      <h2 class="mt-4">การจองล่าสุด</h2>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>ห้อง</th>
+              <th>ผู้จอง</th>
+              <th>วันที่เข้าพัก</th>
+              <th>วันที่ออก</th>
+              <th>วันที่จอง</th>
+            </tr>
+          </thead>
+          <tbody id="recentBookings">
+            <tr>
+              <td colspan="5" class="text-center">กำลังโหลดข้อมูล...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <button class="btn btn-primary mt-3" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise"></i> รีเฟรชข้อมูล
+      </button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyRagha8huoVqVsYYEtP8qgYtKSr_Qtwjl7EpLTrTytwy1JL8Kns4t4CRk8vhhEr5Imkg/exec';
+    // ใช้ URL จาก Google Apps Script Deployment
+    const API_URL = 'const SHEET_ID = '1N-tmGuPXyAiuOToS-ofm2weCNZcJ2VCeTIPdaRwla3Q';
+const SHEET_NAME_ROOMS = 'Rooms'; // ตรวจสอบชื่อ Sheet ให้ตรงกับของจริง
+const SHEET_NAME_BOOKINGS = 'Bookings';
+
+function doGet(e) {
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  // แก้ไขการรับพารามิเตอร์ให้ถูกต้อง
+  const path = e.pathInfo || '';
+  const parameters = e.parameter || {};
+  
+  try {
+    const [resource, action] = path.split('/').filter(Boolean);
+    
+    switch(resource) {
+      case 'rooms':
+        return handleRoomsRequest(action, parameters);
+      case 'bookings':
+        return handleBookingsRequest(action, parameters);
+      case 'admin':
+        return handleAdminRequest(action, parameters);
+      default:
+        return createResponse(404, { error: 'Not Found', details: 'Invalid resource' });
+    }
+  } catch(error) {
+    return createResponse(500, { 
+      error: 'Internal Server Error',
+      details: error.message 
+    });
+  }
+}
+
+// ระบบจัดการห้องพัก
+function handleRoomsRequest(action, params) {
+  const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME_ROOMS);
+  const data = getSheetData(sheet);
+  
+  if (action === 'list') {
+    return createResponse(200, { 
+      success: true,
+      rooms: data 
+    });
+  }
+  
+  return createResponse(404, { error: 'Action not found' });
+}
+
+// ระบบจัดการการจอง
+function handleBookingsRequest(action, params) {
+  const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME_BOOKINGS);
+  
+  if (action === 'create') {
+    const newRow = [
+      generateId(),
+      params.room_id,
+      params.customer_name,
+      params.check_in,
+      params.check_out,
+      new Date().toISOString()
+    ];
+    sheet.appendRow(newRow);
+    return createResponse(200, { success: true });
+  }
+  
+  // ดึงข้อมูลการจองทั้งหมด
+  const data = getSheetData(sheet);
+  return createResponse(200, { bookings: data });
+}
+
+// ระบบ Admin
+function handleAdminRequest(action, params) {
+  const roomsSheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME_ROOMS);
+  const bookingsSheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME_BOOKINGS);
+  
+  const rooms = getSheetData(roomsSheet);
+  const bookings = getSheetData(bookingsSheet);
+  
+  if (action === 'summary') {
+    const summary = {
+      total_rooms: rooms.length,
+      available_rooms: rooms.filter(r => r.status === 'ว่าง').length,
+      booked_rooms: rooms.filter(r => r.status === 'ไม่ว่าง').length,
+      recent_bookings: bookings.slice(-5).reverse() // 5 รายการล่าสุด
+    };
+    return createResponse(200, summary);
+  }
+  
+  return createResponse(404, { error: 'Action not found' });
+}
+
+// ฟังก์ชันช่วยเหลือ
+function getSheetData(sheet) {
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length < 1) return [];
+  
+  const headers = rows[0];
+  return rows.slice(1).map(row => {
+    const obj = {};
+    row.forEach((value, i) => {
+      obj[headers[i]] = value;
+    });
+    return obj;
+  });
+}
+
+function generateId() {
+  return Utilities.getUuid();
+}
+
+function createResponse(statusCode, body) {
+  // เพิ่ม Header สำหรับแก้ปัญหา CORS
+  const response = ContentService.createTextOutput(JSON.stringify(body));
+  response.setMimeType(ContentService.MimeType.JSON);
+  response.setStatusCode(statusCode);
+  
+  // เพิ่ม Header เหล่านี้เพื่อแก้ปัญหา CORS
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+  
+  for (const [key, value] of Object.entries(headers)) {
+    response.setHeader(key, value);
+  }
+  
+  return response;
+}';
+    
+    // แสดงสถานะการโหลด
+    function setLoading(isLoading) {
+      document.body.classList.toggle('loading', isLoading);
+    }
     
     // โหลดข้อมูลสรุป
     async function loadSummary() {
+      setLoading(true);
       try {
         const response = await fetch(`${API_URL}?path=admin/summary`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        document.getElementById('totalRooms').textContent = data.total_rooms;
-        document.getElementById('availableRooms').textContent = data.available_rooms;
-        document.getElementById('bookedRooms').textContent = data.booked_rooms;
+        if (!data) {
+          throw new Error("ไม่ได้รับข้อมูล");
+        }
+        
+        // แสดงข้อมูลใน UI
+        document.getElementById('totalRooms').textContent = data.total_rooms || 0;
+        document.getElementById('availableRooms').textContent = data.available_rooms || 0;
+        document.getElementById('bookedRooms').textContent = data.booked_rooms || 0;
         
         const bookingsTable = document.getElementById('recentBookings');
         bookingsTable.innerHTML = '';
         
-        data.recent_bookings.forEach(booking => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${booking.room_id}</td>
-            <td>${booking.customer_name}</td>
-            <td>${new Date(booking.check_in).toLocaleDateString()}</td>
-            <td>${new Date(booking.check_out).toLocaleDateString()}</td>
+        if (data.recent_bookings && data.recent_bookings.length > 0) {
+          data.recent_bookings.forEach(booking => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${booking.room_id || '-'}</td>
+              <td>${booking.customer_name || '-'}</td>
+              <td>${booking.check_in ? formatDate(booking.check_in) : '-'}</td>
+              <td>${booking.check_out ? formatDate(booking.check_out) : '-'}</td>
+              <td>${booking.booking_date ? formatDateTime(booking.booking_date) : '-'}</td>
+            `;
+            bookingsTable.appendChild(row);
+          });
+        } else {
+          bookingsTable.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center">ไม่พบข้อมูลการจองล่าสุด</td>
+            </tr>
           `;
-          bookingsTable.appendChild(row);
-        });
+        }
       } catch (error) {
-        console.error('Error loading summary:', error);
-        alert('ไม่สามารถโหลดข้อมูลสรุปได้');
+        console.error('เกิดข้อผิดพลาด:', error);
+        
+        // แสดงข้อความผิดพลาด
+        document.getElementById('recentBookings').innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center text-danger">
+              ไม่สามารถโหลดข้อมูลได้: ${error.message}
+            </td>
+          </tr>
+        `;
+      } finally {
+        setLoading(false);
       }
+    }
+    
+    // รีเฟรชข้อมูล
+    function refreshData() {
+      loadSummary();
+    }
+    
+    // จัดรูปแบบวันที่
+    function formatDate(dateString) {
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      return new Date(dateString).toLocaleDateString('th-TH', options);
+    }
+    
+    // จัดรูปแบบวันที่และเวลา
+    function formatDateTime(dateString) {
+      const options = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+      return new Date(dateString).toLocaleDateString('th-TH', options);
     }
     
     // โหลดข้อมูลเมื่อหน้าเว็บโหลดเสร็จ
